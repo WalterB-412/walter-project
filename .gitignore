@@ -1,0 +1,6 @@
+.env
+.obsidian/
+05_위키/Walter_위키/.obsidian/
+node_modules/\nvenv/\n*.mp4\n*.mov\n.DS_Store
+.claude/settings.local.json
+.claude/settings.local.json

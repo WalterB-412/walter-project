@@ -1,0 +1,184 @@
+---
+name: 밀리터리숏폼2차
+description: 이미 완성된 밀리터리 숏폼 편을 제2채널 업로드용으로 재가공(2차 제작)한다. 소재를 다시 모으지 않고 하드링크로 승계해 비용을 아끼되, 대본↔소재 매칭 붕괴를 rework_gate로 차단한다. "밀리터리 2차", "재가공", "R1 만들어줘", mil_NNN_r1 런 작업 시 사용.
+---
+
+# 밀리터리 숏폼 재가공 (2차 제작)
+
+작업 폴더: `01_자동화/밀리터리_숏폼/`
+산출 폴더: `02_콘텐츠/밀리터리_재가공/NNN-R1_YYYYMMDD_키워드/`
+run_id: `mil_NNN_r1_YYYYMMDD` (원본 `mil_NNN_YYYYMMDD`의 R1)
+
+> 1차 제작(신규 편)은 `밀리터리숏폼` 스킬을 쓴다. 이 스킬은 **완성된 편의 재활용 전용**이다.
+
+## 이 파이프라인의 존재 이유
+
+재가공의 절감은 **"소재를 다시 모으지 않는 것"**에서 나온다. 그래서 `footage/`·`extra/`를 **하드링크**로 승계한다 — 디스크 0바이트, md5 동일. md5가 같으므로 preflight의 `[EYES]`·`[EVIDENCE]` 게이트가 그대로 통과한다. **= STEP 3 눈검수를 다시 하지 않아도 되는 근거.**
+
+`tts/`는 **복사**한다(하드링크 금지 — `tts_rerun`이 씬을 갈아끼울 때 원본 편 mp3까지 오염된다).
+
+## ⚠️ 업로드 규칙 (가장 중요)
+
+**원본과 같은 채널에 올리지 않는다.** 재가공본은 **제2채널 전용**이다.
+- 같은 채널 → 반복 콘텐츠 판정
+- 원본 채널과 나란히 → 채널 간 중복 판정
+
+산출 폴더의 `REWORK_INFO.txt`에 원본 런·주제·재가공 런이 기록되며, 업로드한 채널명을 직접 적어둔다.
+
+## 최대 위험 — 대본↔소재 매칭 붕괴
+
+재가공은 **그림이 먼저 고정돼 있다.** 그런데 대본을 먼저 쓰고 그림을 끼워맞추는 순서가 굳으면 오배정이 터진다 (mil_137_r1 실측: offtopic_ok 밀도가 원본 0% → **67%**).
+
+### bind_class — 클립은 두 종류다
+
+| class | 대상 | 성질 | 재활용 |
+|---|---|---|---|
+| **identity** | `footage.weapon`, `ai_first` | **화면 자체가 주장**한다 (함급·국적·행위) | 다른 주장에 깔면 **오배정** |
+| **wallpaper** | `footage.concept` | 서류·시계·회의·실험실 — 어느 문장에 깔려도 무해 | **재활용 대상** |
+
+근거: 최근 25편에서 `footage.weapon` 슬러그 52종 중 `concepts.json`에 있는 건 0개, `footage.concept` 20종은 전부다.
+
+mil_137_r1의 사고가 정확히 이것 — **identity 클립을 wallpaper처럼 썼다** (핵잠 연료 문장 밑에 재래식 KSS-III).
+
+### 그래서 순서를 뒤집는다
+
+**`inventory.md`를 먼저 보고 이야기를 짠다.** "소재가 감당할 각도를 골라라"가 훈시로만 있고 볼 실물이 없어서 순서가 굳었던 것이므로, `rework_init`이 만드는 인벤토리를 실물로 놓고 각도를 정한다.
+
+## 세션 3분할 ★토큰 절감
+
+비용은 세션 길이의 **제곱**에 비례한다(실측 4.2배). 재가공은 눈검수가 없어 1차보다 짧으므로 3분할로 충분하다.
+
+| 세션 | 담당 STEP | 완료 조건 (rework_handoff 단계) | 모델 |
+|---|---|---|---|
+| **S1 기획** | 1 런 생성 · 2 인벤토리→각도 · 3 대본 리바인드 | R2 대본 (headline 교체 + 새 문장 ⅓↑) | Opus 필수 |
+| **S2 음성·게이트** | 5 TTS(바뀐 씬만) · 4 rework_gate | R3 TTS + R4 화면 + R5 게이트 통과 | Opus/Sonnet |
+| **S3 출고** | 6 preflight·빌드 · 7 postflight·캡션 | R6 mp4 + R7 caption 2종 | Opus |
+
+**모델 확인 ★세션 첫 응답**
+세션 단계가 정해지면(신규=S1, 이어서=handoff 결과) 현재 모델(시스템 프롬프트의 모델명)을 위 표 '모델' 열과 대조한다.
+- **일치하면 아무 말도 하지 않는다.**
+- 불일치면 첫 응답 맨 위에 한 줄: `⚠️ 모델: 현재 Sonnet — 이 세션(S3 검수)은 Opus 필수`
+- **"필수" 세션이면 Walter 답을 받은 뒤 진행**한다. 그 외(Opus/Sonnet·Opus 권장)는 알리고 바로 진행.
+- 세션 도중 모델이 바뀐 게 보이면 다시 대조한다.
+
+**세션 운영**
+- **게이트 순서 주의:** `rework_gate`의 오디오 중복률은 새 mp3의 md5로 잰다 → TTS 전에 돌리면 오디오 축은 원본 그대로라 무의미하다. S1 끝에서 `--sheet`로 bind_class·stale evidence만 먼저 보고, **최종 판정은 S2에서 TTS 뒤에** 돌린다.
+- **세션 경계는 승인 게이트가 아니다.** 담당 STEP을 끝내면 handoff를 만들고 그냥 세션을 끝낸다.
+- 세션 인계(세션 종료 직전 + 새 세션 시작 직후):
+  ```bash
+  python3 "$(ls rework_handoff_v*.py|sort -V|tail -1)" --run NNN
+  ```
+  ⚠️ **`handoff_v*.py`(1차용)를 쓰지 마라** — 파일 존재로 판정해서 재가공 런은 복제 직후부터 "S3까지 완료"로 오판한다. `rework_handoff`는 **원본 대비 변화**로 판정하고 게이트 수치를 인계문에 박아 넣는다.
+- **상태파일(scenes/manifest/origin_*.json) 전량을 읽지 말고** handoff가 가리키는 것만 연다.
+- 다음 세션 진입: `/밀리터리숏폼2차 이어서 NNN` → 첫 동작은 위 handoff 실행.
+
+## 파이프라인
+
+### STEP 1 — 재가공 런 생성 [S]
+```bash
+# ⚠️ 먼저 드라이런
+python3 "$(ls rework_init_v*.py|sort -V|tail -1)" --from mil_NNN_YYYYMMDD --keyword "새 키워드" --dry-run
+python3 "$(ls rework_init_v*.py|sort -V|tail -1)" --from mil_NNN_YYYYMMDD --keyword "새 키워드"
+```
+
+하는 일:
+1. `reserve_run`으로 새 NNN을 **원자적 예약** (병렬 세션 안전)
+2. `footage/` + `extra/`를 **하드링크** 승계
+3. `tts/`는 **복사**
+4. `scenes.json`·`manifest.json`의 run_id·절대경로를 새 런으로 치환
+5. **원본 스냅샷**(`origin_*.json`) 보존 — 옛 런 폴더는 `cleanup_work`로 지워질 수 있으므로 gate가 "무엇이 그대로인가"를 계산하려면 필요
+6. 출신 메타를 **전 항목에 박는다**: `orig_key` · `orig_scene_id` · `orig_text` · `orig_evidence` · `bind_class`
+7. **낡은 메타 제거**(`shot_report`·`shot_low`) — 리바인드 전 배정 기준 점수라 옮기면 가리키는 대상이 사라지는데, 남아 있으면 다음 세션을 속인다
+8. `inventory.md` 생성
+
+### STEP 2 — 인벤토리 확인 → 각도 결정 [C]
+`_work/<run_id>/inventory.md`를 **먼저 읽는다.** 확보된 그림이 감당할 수 있는 각도만 고른다.
+
+### STEP 3 — 대본 리바인드 [C]
+`대본_스타일가이드` 최신본 규칙 적용. 씬을 새로 쓰되 **identity 클립은 원래 주장에만** 붙인다.
+- 출신 메타(`orig_*`)를 **지우지 않는다** — `rework_gate`가 이 값을 읽어 충실도를 검사한다. 지우면 게이트가 조용히 안 돈다(mil_126_r1·mil_114_r1 실측 사고).
+
+★**문장 단위 화면 지정 — 대본 확정 직후** (수정이력_분석_v2.x P1. 재가공 = 새 문장 + 승계 소재라 문장↔화면 불일치가 가장 잘 생기는 구조다):
+```bash
+python3 "$(ls sentence_shot_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --propose   # 문장별 need 제안
+# 틀린 need는 _work/<run>/sentence_shots.json에서 고친다(흔한 문장의 발사·비행 제안은 subject로 낮춰도 됨)
+python3 "$(ls sentence_shot_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --apply     # scenes[].sentences 기록
+python3 "$(ls sentence_shot_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --check     # 승계 소재가 이미 있으니 S1에서 바로 대조
+python3 "$(ls sentence_shot_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --gaps      # 불일치 문장의 라이브러리 후보·AI 요청 묶음
+python3 "$(ls script_ear_lint_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD            # 귀 검사(경고)
+```
+- `--apply`를 안 하면 preflight [SENT-SHOT]이 **경고로만** 돈다. 하면 차단이 된다(031-R1 사본 실측: 경고 1 → 차단 4).
+- `--check` 불일치는 S1에서 처리한다: ①문장을 승계 소재가 보여주는 쪽으로 고치거나 ②`--gaps` 후보로 교체(`swap_local`) ③후보 0건이면 `ai_request_batch.md`를 Flow 프롬프트로 **S1 끝에 한 번에** Walter에게(ai_prompt_check 통과본) ④화면이 맞는데 글자 근거만 없으면 눈으로 보고 `footage_review --shows "s04_a:flag"`.
+- Walter 기대치: 말하는 사람 → 실존 인물 영상 우선 / 나라 주어 → 그 나라 국기 / 금액 → 그 통화 지폐 / "A에서 B까지" → 지도 / 만들다 → 공장 / 맞히다 → 맞는 순간.
+- 대본을 다시 고치면 `--propose → --apply`를 다시 돈다(낡은 sentences는 엉뚱한 need로 검사된다. `rework_handoff` v1.2가 "낡음 N씬"으로 표시).
+- **[BIND]와 [SENT-SHOT]은 둘 다 통과해야 한다.** [BIND](rework_gate)는 Claude가 적은 '왜 이 소재가 이 문장을 받치나'의 정합성, [SENT-SHOT](preflight)은 Walter 기대치 규칙(문장 모양→화면 종류)이다. 한쪽 통과가 다른 쪽을 면제하지 않는다.
+
+AI 컷을 새로 반입할 때(`ai_intake`):
+**AI 컷 반입 = 소재등록 동시** — `ai_intake`가 라이브러리 등록(index·md5 중복차단·비율)까지 한다. `/ai소재등록`을 따로 부르지 않는다. 대신 반입 인자를 등록 품질로 채운다:
+- `--desc`: 소문자-하이픈 영문 2~7토큰, 내가 쓴 프롬프트 기준 화면 묘사 (런 번호·씬 번호 넣지 않기 — 재사용 소재다)
+- `--keywords`: **필수**, 한국어+영어 혼합 6개 이상. 비우면 라이브러리에서 영원히 못 찾는다
+- `--note`: `"AI 연출 화면"`만 (화면에 자막으로 구워진다)
+- 반입 배치가 끝나면 **밀리터리 라이브러리만** scan 1회(썰은 안 본다):
+  ```bash
+  python3 "$(ls ai_library_sync_v*.py|sort -V|tail -1)" scan
+  ```
+  미등록·no_keywords 0건이면 끝. 남은 게 있으면 그 건만 `/ai소재등록` 2~4단계로 처리. 워터마크·타국 마킹 눈확인은 S3 눈검수에서 한다(여기서 컨택트시트 열지 않음).
+
+### STEP 4 — 재가공 게이트 [S] ★차단
+```bash
+python3 "$(ls rework_gate_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --sheet
+python3 "$(ls rework_gate_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --json
+```
+- stale evidence(원본 근거가 새 문장과 안 맞는 것), 화면 중복률, bind_class 위반을 본다
+- `--skip-bind`는 **Walter 승인 시에만**
+
+### STEP 5 — TTS 재생성 [S]
+**바뀐 씬만** 갈아끼운다(전 씬 재합성은 Chirp3 쓰로틀로 10~40분이 날아가고 멀쩡한 씬의 억양까지 바뀐다):
+```bash
+python3 "$(ls tts_rerun_scenes_v*.py|sort -V|tail -1)" "_work/mil_NNN_r1_YYYYMMDD/scenes.json" --only 3,7,9
+```
+`--only`는 **씬 id(1부터)**. 기존 mp3는 `.bak`으로 백업된다.
+
+### STEP 6 — 프리플라이트 → 빌드 [S]
+1차와 동일한 스크립트를 쓴다:
+```bash
+python3 "$(ls preflight_mil_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD
+python3 "$(ls military_build_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --out "../../02_콘텐츠/밀리터리_재가공/NNN-R1_YYYYMMDD_키워드"
+```
+**프리플라이트 불통과 시 빌드 금지.**
+
+### STEP 7 — 출고 [S+C]
+※ 2026-10-05 공통 도구 변경(수정이력_분석_v2.0): build v1.19는 seg_dur 없는 씬을 **문장 경계**에서 분할하므로 승계 소재의 CLIPOVER가 새로 뜰 수 있다(start_s 조정). preflight v3.7은 사진 3초 초과·짧은 소재 3회 이상·금지 소재·대본≠음성을 차단한다. scenes[].sentences가 없는 승계 런의 [SENT-SHOT]은 경고만 — 그래서 STEP 3에서 `--apply`한다.
+
+산출 폴더 `02_콘텐츠/밀리터리_재가공/NNN-R1_YYYYMMDD_키워드/`와 `REWORK_INFO.txt`는 STEP 1 `rework_init`이 이미 만든다. 빌드는 `--out`으로 그 폴더를 지정한다.
+
+★**문장별 대조 시트 자가검수** (P7) — 빌드 직후, 캡션 쓰기 전:
+```bash
+python3 "$(ls postflight_v*.py|sort -V|tail -1)" --run-id mil_NNN_r1_YYYYMMDD --video "<완성 mp4 절대경로>"
+```
+`_work/<run>/postflight_sheet*.png`를 열어 문장마다 ①need 화면이 보이나 ②주어=화면 주체 ③국적·영역 ④앞 칸 반복 ⑤✦·로고·타국 마킹 을 본다. 재가공은 승계 소재가 **원래 다른 문장용**이었으므로 ②를 특히 본다. "Walter라면 걸 문장"은 고치고 재빌드. 결과 기록:
+`--verdict "3-1:ok,7-2:fix:국기 아님"` — fix가 남아 있으면(exit 1) 출고하지 않는다.
+통과 후 `caption.txt`·`youtube_caption.txt`를 새로 쓴다. 재빌드로 밀려난 구 mp4·캡션은 **삭제**한다(`_이전버전/` 만들지 않음, 2026-10-07~). 산출 폴더엔 최신 mp4 1개만.
+★**댓글 10개** (2026-10-07~): `youtube_caption.txt` 맨 아래 `【댓글】` 블록 — 밀리터리숏폼 스킬 STEP 7 규칙 그대로(응원 3·부정 2·의문 3·헛소리 2, AI 티 빼기). 원본 편 댓글을 옮겨 쓰지 말고 **재가공 각도에 맞춰 새로** 쓴다.
+★**디스크 정리** (2026-10-07~): 출고 마지막에 `python3 "$(ls disk_dedup_v*.py|sort -V|tail -1)" --apply` 1회. 같은 소재 사본을 APFS 클론으로 합친다(내용·경로 그대로, 재가공 영향 없음). 다른 세션이 파이프라인 실행 중이면 스스로 중단 — 그냥 넘어간다. 출력 끝 '여유 공간'이 30GB 미만이면 Walter에게 알린다.
+
+## 수정 요청 처리 ("수정사항 있어")
+
+밀리터리숏폼 스킬 "수정 요청 처리" 7단계를 그대로 따른다. 재가공 편만 다른 점:
+- 로그 파일명: `01_자동화/밀리터리_숏폼/_수정요청_로그/mil_NNN_r1_<요청일>.md` (NNN = 원본 번호. 2회차부터 `_2차` 접미)
+- 집계: `fix_stats_v1.1`부터 `_rN` 로그는 숏폼 편 집계에서 **빠진다**(원본 번호와 섞이지 않게). 재가공만 보려면 `python3 "$(ls fix_stats_v*.py|sort -V|tail -1)" --rework`
+- 교체 후보 대조(주체·동작·영역·국적)에 **bind_class**를 더한다 — identity 클립은 원래 주장에만
+- 교체·재빌드 후 `rework_gate` 재실행(HOOK-SAME·화면 중복률이 바뀐다) → preflight → postflight
+> `rework_handoff_v*.py`는 출고 스크립트가 아니라 **세션 인계용**이다(§세션 3분할).
+
+## 체크리스트
+
+- [ ] 세션 경계에서 `rework_handoff`로 인계하고 끊었는가
+- [ ] `--dry-run`으로 먼저 확인했는가
+- [ ] `inventory.md`를 대본보다 **먼저** 읽었는가
+- [ ] identity 클립이 원래 주장에만 붙어 있는가
+- [ ] `orig_*` 메타를 지우지 않았는가
+- [ ] 대본 확정 후 `sentence_shot --apply`·`--check`, `script_ear_lint`를 돌렸는가
+- [ ] `rework_gate`([BIND] 포함)와 preflight [SENT-SHOT]을 **둘 다** 통과했는가
+- [ ] postflight 시트 `--verdict`에 fix가 남지 않았는가
+- [ ] 제2채널에 올린다는 것을 확인했는가
