@@ -1,21 +1,29 @@
 ---
 name: 밀리터리롱폼
-description: 국뽕/방산 테마 가로 롱폼(1920×1080, 9~11분) 유튜브 영상을 주제 1줄에서 완성 mp4까지 자동 생성한다. 콜드오픈+인사+챕터 5~6개+결론 구조로 대본을 쓰고, 풋티지 수집·눈검수 → TTS → 프리플라이트 → 합성 → 챕터 타임스탬프·썸네일까지 진행한다. "밀리터리 롱폼", "롱폼 만들어줘", millong_NNN 런 작업 시 사용. 세로 숏폼은 밀리터리숏폼 스킬을 쓴다.
+description: 밀리터리·방산 다큐멘터리 가로 롱폼(1920×1080, 9~11분) 유튜브 영상을 주제 1줄에서 완성 mp4까지 자동 생성한다. 콜드오픈+인사+챕터 5~6개+결론 구조의 다큐 톤 대본(출처 등급제 팩트체크)을 쓰고, 정보 그래픽(지도·수치·타임라인) 렌더 → 가로 풋티지 수집·눈검수 → TTS → 프리플라이트 → 합성(좌하단 소제목·다큐 자막) → 챕터 타임스탬프·썸네일까지 진행한다. "밀리터리 롱폼", "롱폼 만들어줘", millong_NNN 런 작업 시 사용. 세로 숏폼은 밀리터리숏폼 스킬을 쓴다.
 ---
 
-# 밀리터리 롱폼 자동화
+# 밀리터리 롱폼 자동화 (다큐 스타일 v2 — 2026-10-12)
+
+> **v2 전환 요약**: 국뽕 톤 → **다큐멘터리 톤**(참고: 유튜브 '다큐9분'). 가로 소재만 · 정보 그래픽 ≤20% ·
+> 좌측 하단 소제목 · 다큐 자막(반투명 띠 + 인용 자막) · 출처 등급제 팩트체크.
+> 스크립트: `footage_collect_v1.7` · `docu_graphic_v1.0.mjs`(신규) · `preflight_mil_v2.0` · `military_build_v1.5` ·
+> `layout.json`(v2.0) · `대본_스타일가이드_v1.4` · `그래픽_스펙_v1.0`. 적용 방법은 `01_자동화/밀리터리_롱폼/적용가이드_v2.md`.
 
 작업 폴더: `01_자동화/밀리터리_롱폼/`
 산출 폴더: `02_콘텐츠/밀리터리롱폼/NNN_YYYYMMDD_키워드/`
 run_id: `millong_NNN` (3자리 0패딩)
 
 **캔버스: 16:9 가로 1920×1080 / 30fps** — 숏폼 `layout.json`과 **완전히 독립**이다(좌표 단일 소스: 롱폼 폴더의 `layout.json`).
-자막 폰트: Shilla_Culture(B). 챕터 타이틀은 상시 밴드가 아니라 **챕터 전환 시 2~3초 트랜지언트 카드**.
+폰트: **GoshinGothic-SemiBold** (`layout.json` fonts — 롱폼 `assets/fonts/`에 없으면 숏폼 폴더 공유본).
+화면 장치: 나레이션 자막 = 화면 폭 반투명 띠 · 인용 자막(`quote`) = 라벨 박스+번역+원문 ·
+챕터 소제목 = **좌측 하단 lower third**(챕터 시작 3초 무나레이션) · 장소·시각 슈퍼(`location`) = 좌측 상단.
 
 ## 시작 전 반드시 읽을 것
 
 ```bash
-ls 대본_스타일가이드_v*.md | sort -V | tail -1   # §0 롱폼 확장이 핵심. 뒷부분은 숏폼 규칙 그대로 적용
+ls 대본_스타일가이드_v*.md | sort -V | tail -1   # §0(특히 §0-D 다큐 톤·§0-E 화면 장치·§0-G 팩트 v2)이 핵심. 숏폼 §1·§2·§4·§6(국뽕 톤)은 롱폼 미적용
+ls 그래픽_스펙_v*.md | sort -V | tail -1          # 정보 그래픽 선정 기준·JSON 스펙
 ls 작업스펙_AI컷_비율정합_v*.md | sort -V | tail -1
 ```
 
@@ -25,7 +33,7 @@ ls 작업스펙_AI컷_비율정합_v*.md | sort -V | tail -1
 
 | 세션 | 담당 STEP | 완료 조건 | 모델 |
 |---|---|---|---|
-| **S1 기획** | 0 팩트 · 0.5 소재 가용성 · 1 대본 · 1.5 챕터·그래픽 카드 PNG | `scenes.json` + 카드 + **예상 길이 9~11분** | Opus 필수 |
+| **S1 기획** | 0 팩트(출처 등급) · 0.5 소재 가용성 · 1 대본 · 1.5 정보 그래픽 렌더 | `scenes.json` + `facts.json`(v2) + `graphics/` + **예상 길이 9~11분** | Opus 필수 |
 | **S2 수집** | 2 풋티지 수집 (+AI컷 반입) | `manifest.json` | Opus/Sonnet |
 | **S3 검수** | 3 눈검수 · 4 TTS | `tts/` | **Opus 필수** (비전 판별) |
 | **S4 출고** | 5 preflight · 6 빌드 · postflight · 썸네일 · 7 챕터·캡션 | mp4 + caption | Opus |
@@ -41,7 +49,7 @@ ls 작업스펙_AI컷_비율정합_v*.md | sort -V | tail -1
 - **세션 경계는 승인 게이트가 아니다.** 담당 STEP을 끝내면 handoff를 만들고 **그냥 세션을 끝낸다.**
 - **S3는 씬이 많으면 더 쪼갠다** — 30씬 초과면 챕터 단위로 S3a(챕터 1~3)/S3b(챕터 4~6). 눈검수 시트 이미지가 최대 토큰 싱크다.
 - **눈검수 시트 이미지는 S3에서만 연다.**
-- STEP 1.5 카드가 없으면 STEP 2가 graphic 씬을 등재하지 못한다 — S1에서 반드시 끝낸다.
+- STEP 1.5 그래픽이 없으면 STEP 2가 graphic 씬을 등재하지 못한다 — S1에서 반드시 끝낸다.
 - 세션 인계(세션 종료 직전 + 새 세션 시작 직후):
   ```bash
   python3 "$(ls handoff_v*.py|sort -V|tail -1)" --run NNN
@@ -60,8 +68,12 @@ ls 작업스펙_AI컷_비율정합_v*.md | sort -V | tail -1
   → 챕터 2~3 [승] 상황이 쌓인다 (각 챕터가 위기→반전→증거의 미니 아크)
   → 챕터 4~5 [전] 판이 뒤집히는 지점 — 가장 아껴둔 사실/숫자
   → 챕터 6   [결] 그래서 지금 무엇이 달라졌나
-결론 (CTA, 콜드오픈 콜백 + 애국 CTA + 열린 질문 1개)
+결론 (CTA, 콜드오픈 콜백 + "그래서 무엇이 바뀌었나" + 열린 질문 1개)   ← 애국 CTA 폐지
 ```
+
+**다큐 톤 (스타일가이드 §0-D)** — 형용사 대신 날짜·장소·사람·숫자. 국뽕·선정 표현은 preflight `[HYPE]`가 차단
+(압도적·세계가 놀란·경악 등). 적을 조롱하지 않는다. **한계·반론·비용을 다루는 씬 필수**(`counterpoint: true`).
+숏폼의 심리 엔진·자극 장치·단정형 훅은 롱폼에 쓰지 않는다.
 
 **챕터↔챕터 사이에도 연결(전환 커넥터·오픈루프)이 있어야 한다.** 챕터가 바뀐다고 이야기가 리셋되면 안 된다.
 
@@ -86,6 +98,8 @@ ls 작업스펙_AI컷_비율정합_v*.md | sort -V | tail -1
  "chapter_title": {"num": "CHAPTER 04", "line1": "독일이 진 날", "line2": "가격표가 갈랐다", "arc": "전"}}
 ```
 
+- 소제목 표시: line1 = 질문·장면(굵게 ≤20자), line2 = 사실 정보(기울임 ≤28자: 사건명·날짜·장소).
+  챕터 첫 씬 앞 **3초 무나레이션**으로 좌측 하단에 뜬다(총 길이에 포함, 6챕터 ≈ +18초). 그 3초 화면은 실사 롱테이크로.
 - 값은 **기 / 승 / 전 / 결** 4개뿐 (오타는 preflight가 exit 1)
 - 한 역할이 여러 챕터에 걸쳐도 된다(승 2~3개가 정상). 단 **순서는 기→승→전→결** — 역행하면 `[ARC-ORDER]`
 - **`전`은 반드시 하나 지정한다.** 없으면 `[NO-TURN]` — 판이 뒤집히는 지점이 없다는 뜻이고 그게 중반 이탈의 원인이다. `전` 챕터에 **가장 아껴둔 팩트**를 배치한다.
@@ -122,7 +136,12 @@ ls 작업스펙_AI컷_비율정합_v*.md | sort -V | tail -1
 ## 파이프라인
 
 ### STEP 0 — 리서치·팩트체크 [C]
-웹검색 + `../유튜브_자동화/naver_search.py` → `_work/millong_NNN/facts.json`
+웹검색 + `../유튜브_자동화/naver_search.py` → `_work/millong_NNN/facts.json` (**v2 스키마**, 스타일가이드 §0-G)
+- 팩트마다 `sources[{publisher,url,tier,accessed,excerpt}]` + `confidence` + `as_of`.
+- **A등급**(정부·군·의회·SIPRI·제조사 공시·사고조사 보고서) 우선. **C등급(위키·블로그)만으로는 대본에 못 쓴다**(`[FACT-TIER]`).
+- 수치는 독립 출처 2개 이상. 추정·논쟁 값은 문장에 헤징 필수(`[HEDGE]`).
+- 인용(`quote`)할 발언·교신·문서는 원문과 출처를 facts에 저장.
+- 주제는 **무기 소개보다 사건**(작전·사고·개발 비화·협상)이 다큐로 강하다. 반론 챕터를 채울 근거도 이 단계에서 같이 모은다.
 롱폼은 챕터 5~6개를 감당할 **팩트 총량**이 필요하다. 부족하면 주제를 바꾼다.
 
 ### STEP 0.5 — 소재 가용성 [S]
@@ -131,10 +150,23 @@ python3 "$(ls footage_collect_v*.py|sort -V|tail -1)" --query "<영문 키워드
 ```
 
 ### STEP 1 — 대본 [C]
-스타일가이드 §0 + 숏폼 씬 규칙 전체 적용 → `_work/millong_NNN/scenes.json`
-다 쓴 뒤 **반드시 글자수 환산**으로 9~11분 확인.
+스타일가이드 §0(§0-D 다큐 톤 우선) + 숏폼 씬 규칙(흐름 A~H·why) 적용 → `_work/millong_NNN/scenes.json`
+- 화면 장치: `chapter_title`(소제목) · `location`(장소·시각) · `quote`(인용 자막 — fact_ids 필수) · `counterpoint`(반론 씬)
+- 정보 그래픽 씬: `footage.type:"graphic"` + `footage.graphic{kind,title,source,…}` + `fact_ids` — 선정 기준은 그래픽 스펙 §1.
+  **전체 길이 20% 이하**(목표 10~15%), 콜드오픈 금지, 연속 2씬 이하.
+- 다 쓴 뒤 **반박 검토 1회**: 댓글로 반박당할 문장 5개를 뽑아 출처 재확인.
+다 쓴 뒤 **반드시 글자수 환산**으로 9~11분 확인(소제목 무나레이션 3초×챕터 수 포함).
 
-### STEP 2 — 풋티지 수집 [S]
+### STEP 1.5 — 정보 그래픽 렌더 [S]
+```bash
+node "$(ls docu_graphic_v*.mjs|sort -V|tail -1)" --run-id millong_NNN          # graphics/scene_N.mp4 + @2x.png + index.json
+```
+최초 1회 `npm i`(package.json). 결과 @2x.png를 열어 숫자·지명·출처 표기를 눈으로 확인한다.
+챕터 카드(`chapter_capture_v*.mjs`)는 **더 이상 실행하지 않는다** — 소제목은 빌드가 직접 그린다.
+
+### STEP 2 — 풋티지 수집 [S] (★가로 소재만)
+v1.7부터 세로(ar<1.0) 후보는 **아예 버린다**. 4:3·1:1 기록영상은 허용(블러 여백), 16:9는 화면을 꽉 채운다.
+소재가 비면 NO-MATCH/AI-REQUEST로 보고되고, AI 컷은 **16:9 가로로만** 생성한다.
 ```bash
 python3 "$(ls footage_collect_v*.py|sort -V|tail -1)" --scenes _work/millong_NNN/scenes.json --run-id millong_NNN
 ```
@@ -173,14 +205,20 @@ python3 "$(ls tts_run_mil_v*.py|sort -V|tail -1)" _work/millong_NNN/scenes.json
 ```bash
 python3 "$(ls preflight_mil_v*.py|sort -V|tail -1)" --run-id millong_NNN
 ```
-롱폼 전용 게이트: `[ARC-ORDER]` `[NO-TURN]` `[NO-CHAPTERS]` + 인사 첫 문장 대조 + 총 길이.
+롱폼 전용 게이트: `[ARC-ORDER]` `[NO-TURN]` `[NO-CHAPTERS]` + 인사 첫 문장 대조 + 총 길이(소제목 무나레이션 포함).
 v1.9: `[BANNED]` 금지 소재(_eyes.json verdict=bad·manifest banned) 배정 시 차단 — 우회 플래그 없음.
+**v2.0 다큐 게이트**:
+- 차단: `[PORTRAIT-IN-LONG]` 세로 영상·사진 **0건** · `[GFX-RATIO]` 그래픽 >20% · `[GFX-SOURCE]` 그래픽 출처·fact_ids 누락 ·
+  `[FACT-TIER]` C등급 단독 출처 · `[HEDGE]` 추정치 단정 · `[HYPE]` 국뽕·선정 표현 · `[QUOTE]` 인용 라벨·근거·줄 수 · `[LT-WIDTH]` 소제목 폭
+- 경고: `[GFX-STREAK]` `[GFX-CHAPTER]` `[GFX-COLDOPEN]` `[FACT-XCHECK]` `[FACT-LEGACY]` `[HYPE-CTA]` `[BALANCE]` `[LOCATION]`
 **불통과 시 빌드 금지.**
 
 ### STEP 6 — 영상 합성 [S]
 ```bash
 python3 "$(ls military_build_v*.py|sort -V|tail -1)" --run-id millong_NNN
 ```
+v1.5: 16:9 소재 풀블리드(layout `fit.fullbleed_landscape`) · 자막 띠 · 인용 자막 · 좌하단 소제목 · 장소 슈퍼 · 그래픽 mp4.
+로그 첫 줄의 `폰트:`가 GoshinGothic이 아니면 경고가 뜬다 — `assets/fonts/` 확인.
 
 ### STEP 7 — 챕터·출고 [S+C]
 ```bash
@@ -191,13 +229,22 @@ python3 "$(ls postflight_v*.py|sort -V|tail -1)" --run-id millong_NNN --video <m
 
 산출 폴더 구성: `long_mil_<주제>_YYYYMMDD_HHMMSS.mp4` · `caption.txt` · `youtube_caption.txt` · `facts.json` · `thumbnail.png`
 
-★**댓글 10개** (2026-10-07~): `youtube_caption.txt` 맨 아래 `【댓글】 ※ 설명란에 붙이지 말 것 — 업로드 후 댓글용` 블록 — 밀리터리숏폼 스킬 STEP 7 규칙 그대로(응원 3·부정 2·의문 3·헛소리 2, AI 티 빼기). 롱폼은 특정 챕터를 집어 말하는 댓글을 2~3개 섞는다("3분쯤 나온 ~").
+★**참고자료** (v2): `youtube_caption.txt` 챕터 목록 아래에 `【참고자료】` 블록 — facts.json의 A/B 출처를 발행처·제목·연도로 나열(URL은 선택).
+★**AI 컷 공개**: 실제 사건처럼 보이는 AI 연출 화면이 있으면 업로드 시 유튜브 '변경되거나 합성된 콘텐츠' 항목을 **예**로 체크한다
+(Walter에게 출고 메시지로 알린다). 화면 고지(`caption_note: "AI 연출 화면"`)는 그대로 유지.
+
+★**댓글 10개** (2026-10-07~): `youtube_caption.txt` 맨 아래 `【댓글】 ※ 설명란에 붙이지 말 것 — 업로드 후 댓글용` 블록 — 밀리터리숏폼 스킬 STEP 7 규칙 그대로(응원 3·부정 2·의문 3·헛소리 2, AI 티 빼기). 롱폼은 특정 챕터를 집어 말하는 댓글을 2~3개 섞는다("3분쯤 나온 ~"). 다큐 톤에 맞춰 국뽕 응원 일색은 피하고, 의문 댓글은 반론 챕터를 겨냥한다.
 
 > **유튜브 설명 첫 줄은 반드시 `0:00`**으로 시작해야 챕터가 잡힌다.
 
 ## 체크리스트
 
 - [ ] 세션 경계에서 `handoff_v*.py`로 인계하고 끊었는가 (눈검수 시트는 S3에서만)
+- [ ] 국뽕·선정 표현 없이 날짜·장소·숫자로 썼는가 / 반론 씬(counterpoint)이 있는가 / 결론에 애국 구호가 없는가
+- [ ] facts.json v2: 모든 수치가 A/B 출처, 추정치는 헤징, 인용은 원문 저장
+- [ ] 정보 그래픽 10~15%(상한 20%), 출처 표기, 콜드오픈엔 실사
+- [ ] 세로 소재 0건, AI 컷 16:9
+- [ ] 설명란 참고자료 블록 / AI 컷이 있으면 합성 콘텐츠 공개 체크
 - [ ] 인사 씬 첫 문장이 토씨까지 정확한가 / 콜드오픈 직후인가
 - [ ] `전` 챕터가 지정돼 있고 거기에 가장 아껴둔 팩트가 있는가
 - [ ] arc 순서가 기→승→전→결인가

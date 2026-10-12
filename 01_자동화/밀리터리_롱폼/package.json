@@ -1,0 +1,12 @@
+{
+  "name": "military-longform",
+  "private": true,
+  "type": "module",
+  "description": "밀리터리 롱폼 — docu_graphic 렌더러 의존성 (npm i 1회)",
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "puppeteer": "^24.0.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  }
+}

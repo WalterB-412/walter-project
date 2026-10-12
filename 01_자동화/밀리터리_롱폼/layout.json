@@ -1,5 +1,5 @@
 {
-  "_comment": "롱폼(16:9, 1920x1080) 좌표 단일 소스. 숏폼 layout.json과 독립 — 숏폼 무영향. 자막 폰트: Shilla_Culture(B)(공유 폰트 심링크). 챕터 타이틀은 상시 밴드가 아니라 챕터 전환 시 2~3초 트랜지언트 카드.",
+  "_comment": "롱폼(16:9, 1920x1080) 좌표 단일 소스. 숏폼 layout.json과 독립 — 숏폼 무영향. v2.0(2026-10-12): 다큐 스타일 — 자막 폰트 GoshinGothic-SemiBold, 자막은 하단 반투명 띠(다큐9분 참고), 챕터 타이틀은 전체화면 카드 대신 좌측 하단 소제목(lower third), 인용 자막(라벨 박스+번역+원문) 신설.",
   "canvas": {
     "w": 1920,
     "h": 1080,
@@ -7,34 +7,116 @@
   },
   "zones": {
     "chapter": {
+      "_comment": "v2.0부터 미사용(chapter_mode=card일 때만). 하위호환용으로 남김",
       "y0": 60,
       "y1": 260,
       "margin_x": 90
     },
     "subtitle": {
-      "y0": 840,
-      "y1": 1030,
-      "max_w": 1700
+      "_comment": "자막 띠가 들어가는 세로 구간. 띠 아래끝 = y1. 유튜브 재생바(하단 ~50px)를 피한다",
+      "y0": 760,
+      "y1": 1000,
+      "max_w": 1500
     },
     "danger_bottom": {
       "y0": 1030,
       "y1": 1080
     }
   },
+  "fonts": {
+    "_comment": "폰트 파일은 assets/fonts/에 둔다. 롱폼 폴더에 없으면 fallbacks를 순서대로 찾는다(숏폼 폴더 공유본).",
+    "main": "assets/fonts/GoshinGothic-SemiBold.ttf",
+    "fallbacks": [
+      "../밀리터리_숏폼/assets/fonts/GoshinGothic-SemiBold.ttf"
+    ]
+  },
   "headline_style": {
-    "_comment": "챕터 타이틀 카드 스타일(구 headline_style 자리 재사용 — 스크립트 키 호환 유지)",
+    "_comment": "챕터 소제목 글자수 상한(chapter_title.line1/line2). 키 이름은 하위호환 유지",
     "line1_max_chars": 20,
-    "line2_max_chars": 24,
-    "font": "assets/fonts/에이투지체-8ExtraBold.ttf",
+    "line2_max_chars": 28,
+    "font": "assets/fonts/GoshinGothic-SemiBold.ttf",
     "color": "#FFFFFF",
     "accent_color": "#FFD400"
   },
   "subtitle_style": {
+    "_comment": "나레이션 자막(A안): 화면 폭 전체 반투명 검은 띠 + 흰 글자. 숫자 노란 강조는 다큐 톤에 맞지 않아 기본 끔",
     "max_lines": 2,
-    "max_chars_per_line": 22,
-    "font": "assets/fonts/Shilla_Culture(B).otf",
-    "highlight_color": "#FFD400",
-    "font_size": 56
+    "max_chars_per_line": 30,
+    "font": "assets/fonts/GoshinGothic-SemiBold.ttf",
+    "font_size": 50,
+    "align": "center",
+    "text_color": "#FFFFFF",
+    "band_color": "#000000",
+    "band_alpha": 0.55,
+    "band_pad_y": 22,
+    "line_gap": 10,
+    "shadow": true,
+    "highlight_numbers": false,
+    "highlight_color": "#FFD400"
+  },
+  "quote_style": {
+    "_comment": "인용 자막(다큐9분 교신 자막 형식): 좌측 흰 라벨 박스(발화 주체) + 한국어(큰 글씨) + 원문(작은 글씨). 인용 구간은 배경을 어둡게 눌러 '기록'임을 표시",
+    "label_box_w": 300,
+    "label_bg": "#FFFFFF",
+    "label_color": "#000000",
+    "label_font_size": 44,
+    "label_max_chars": 8,
+    "text_x": 340,
+    "text_max_w": 1480,
+    "ko_font_size": 46,
+    "orig_font_size": 32,
+    "orig_color": "#D9D9D9",
+    "line_gap": 8,
+    "band_pad_y": 26,
+    "dim_alpha": 0.35
+  },
+  "lower_third_style": {
+    "_comment": "좌측 하단 소제목(다큐9분 참고). chapter_title이 붙은 씬 시작에 lead_s 동안 나레이션 없이 현장음+BGM과 함께 노출된 뒤 사라지고, 그 다음 나레이션이 시작된다(자막 띠와 시간상 겹치지 않음)",
+    "x": 96,
+    "bottom": 975,
+    "line1_size": 78,
+    "line2_size": 42,
+    "line2_shear": 0.21,
+    "line_gap": 14,
+    "color": "#FFFFFF",
+    "line2_color": "#F0F0F0",
+    "shadow_alpha": 0.75,
+    "vignette_alpha": 0.55,
+    "lead_s": 3.0,
+    "show_from_s": 0.25,
+    "fade_s": 0.35
+  },
+  "location_super_style": {
+    "_comment": "장소·시각 슈퍼(scene.location). 좌측 상단 작은 한 줄 — 하단 자막과 겹치지 않는다",
+    "x": 96,
+    "y": 72,
+    "font_size": 36,
+    "dur_s": 3.5,
+    "fade_s": 0.3,
+    "box_alpha": 0.0
+  },
+  "graphics": {
+    "_comment": "HTML 정보 그래픽(지도·수치·타임라인 등) 비중 규칙 — preflight [GFX-*]가 이 값을 읽는다",
+    "max_ratio": 0.20,
+    "target_ratio": [0.10, 0.15],
+    "min_ratio_warn": 0.05,
+    "max_consecutive_scenes": 2,
+    "chapter_max_ratio": 0.35,
+    "no_graphics_before_greeting": true
+  },
+  "chapter_mode": "lower_third",
+  "fit": {
+    "_comment": "16:9(±tol) 실사는 축소·블러 테두리 없이 화면을 꽉 채운다(다큐 화면). 4:3·1:1은 기존 블러 여백 fit. false면 v1.4처럼 모든 소재를 90% 축소",
+    "fullbleed_landscape": true,
+    "fullbleed_ar_tol": 0.03,
+    "fullbleed_zoom": 1.04
+  },
+  "caption_note_style": {
+    "_comment": "자료화면·AI 연출 고지 박스 — 좌측 상단(location 슈퍼 아래)로 이동해 하단 자막 띠와 겹치지 않게",
+    "x": 96,
+    "y": 130,
+    "font_size": 28,
+    "box_alpha": 0.45
   },
   "scrim": {
     "top_alpha": 0.0,
