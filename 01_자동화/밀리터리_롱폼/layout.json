@@ -1,0 +1,45 @@
+{
+  "_comment": "롱폼(16:9, 1920x1080) 좌표 단일 소스. 숏폼 layout.json과 독립 — 숏폼 무영향. 자막 폰트: Shilla_Culture(B)(공유 폰트 심링크). 챕터 타이틀은 상시 밴드가 아니라 챕터 전환 시 2~3초 트랜지언트 카드.",
+  "canvas": {
+    "w": 1920,
+    "h": 1080,
+    "fps": 30
+  },
+  "zones": {
+    "chapter": {
+      "y0": 60,
+      "y1": 260,
+      "margin_x": 90
+    },
+    "subtitle": {
+      "y0": 840,
+      "y1": 1030,
+      "max_w": 1700
+    },
+    "danger_bottom": {
+      "y0": 1030,
+      "y1": 1080
+    }
+  },
+  "headline_style": {
+    "_comment": "챕터 타이틀 카드 스타일(구 headline_style 자리 재사용 — 스크립트 키 호환 유지)",
+    "line1_max_chars": 20,
+    "line2_max_chars": 24,
+    "font": "assets/fonts/에이투지체-8ExtraBold.ttf",
+    "color": "#FFFFFF",
+    "accent_color": "#FFD400"
+  },
+  "subtitle_style": {
+    "max_lines": 2,
+    "max_chars_per_line": 22,
+    "font": "assets/fonts/Shilla_Culture(B).otf",
+    "highlight_color": "#FFD400",
+    "font_size": 56
+  },
+  "scrim": {
+    "top_alpha": 0.0,
+    "bottom_alpha": 0.55,
+    "top_fade_y": [0, 1],
+    "bottom_fade_y": [800, 1080]
+  }
+}
